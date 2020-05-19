@@ -19,12 +19,13 @@ const (
 	findLogSQL                    = "select room_id from log where type = '1' and student_id = $1"
 	clearLogSQL                   = "update log set type= '0' where end_time <now() and type = '1' returning room_id"
 	findRoomByTypeAndStudentIDSQL = "select id,timestr from log where student_id=$1 and type = '1'"
+	//查找对象语句
+	selectSQL = "select * from student where student_id = $1 and password = $2"
 )
 
 var (
 	sessionMgr *SessionMgr = nil //session管理器
-	//查找对象语句
-	selectSQL = "select * from student where student_id = $1 and password = $2"
+	mu         sync.Mutex
 )
 
 func init() {
@@ -36,6 +37,7 @@ func HTTPTest() {
 	http.HandleFunc("/login", login)
 	http.HandleFunc("/index", addpHanderFunc(index))
 	http.HandleFunc("/success", addpHanderFunc(success))
+	http.HandleFunc("/exitRoom", addpHanderFunc(exitRoom))
 	err := http.ListenAndServe("localhost:8080", nil)
 	if err != nil {
 		fmt.Println(err)
@@ -46,7 +48,18 @@ func index(w http.ResponseWriter, r *http.Request) {
 
 	var (
 		viewEntity View1
+		Entity     View2
 	)
+	loginUser := getLoginUser(w, r)
+	DB.QueryRow(findRoomByTypeAndStudentIDSQL, loginUser.StudentID).Scan(&Entity.Number, &Entity.TimeStr)
+	if Entity.Number != "" && Entity.TimeStr != "" {
+		tmpl, err := template.ParseFiles("view/success.html")
+		if err != nil {
+			fmt.Println(err)
+		}
+		tmpl.Execute(w, Entity)
+		return
+	}
 	fmt.Println("登陆成功这是登陆用户", getLoginUser(w, r))
 	t, err := template.ParseFiles("view/index.html")
 	if err != nil {
@@ -187,7 +200,7 @@ func success(w http.ResponseWriter, r *http.Request) {
 
 		} else {
 			var viewEntity View1
-			tmpl, err := template.ParseFiles("view/appointment.html")
+			tmpl, err := template.ParseFiles("view/index.html")
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -200,9 +213,7 @@ func success(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateRoomAndInsetLog(studentID string) (string, bool, string, string) {
-	var (
-		mu sync.Mutex
-	)
+
 	mu.Lock()
 	var (
 		flag    bool = false
@@ -290,30 +301,23 @@ func clearLogAndRoom() {
 }
 
 func exitRoom(w http.ResponseWriter, r *http.Request) {
-	var viewEntity View1
-	fmt.Println("请求到了exitRoom")
-	err := r.ParseForm()
-	if err != nil {
-		fmt.Println(err)
-	}
-	studentid := r.FormValue("studentid")
-	if len(studentid) < 2 {
-		index(w, r)
-		return
-	}
-	tmpl, err := template.ParseFiles("view/appointment.html")
+	var (
+		Entity View1
+	)
+	loginUser := getLoginUser(w, r)
+	tmpl, err := template.ParseFiles("view/index.html")
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	if studentid != "" {
-		ExitRoomAndInsert(studentid)
-		viewEntity.Text = "取消成功"
+	if loginUser.StudentID != "" {
+		ExitRoomAndInsert(loginUser.StudentID)
+		Entity.Text = "取消成功"
 	} else {
-		viewEntity.Text = "取消失败"
+		Entity.Text = "取消失败"
 	}
-	viewEntity.Count = Count()
-	tmpl.Execute(w, viewEntity)
+	Entity.Count = Count()
+	tmpl.Execute(w, Entity)
 }
 
 func ExitRoomAndInsert(studentId string) {
