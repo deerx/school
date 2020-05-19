@@ -10,21 +10,11 @@
 
 <body>
     <form action="/login" method="POST">
-        <input type="text" id="username" name = "username" value=""/>
-        <input type="password" id="password" name = "password" value=""/>
-        <input type="submit" value="提交" />
+        <p>学号<input type="text" id="studentid" name = "studentid" value=""/></p>
+        <p>密码<input type="text" id="password" name = "password" value=""/></p>
+        <input type="submit" id="but1" value="提交" />
     </form>
-
-    <!-- <script>
-        $(document).ready(function () {
-            $("#but1").click(function () {
-                htmlobj = $.ajax({ url: "/ajax", async: false });
-                console.log(htmlobj.responseText)
-                $("#text1").val(htmlobj.responseText);
-            });
-        });
-
-    </script> -->
+    <p><b> {{.}}</b></P>
 </body>
 
 </html>

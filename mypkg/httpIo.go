@@ -21,7 +21,7 @@ func TestIo() {
 	io.Copy(os.Stdout, &b)
 }
 
-type notify
+// type notify
 
 func (user *UserInfo) notify() {
 	fmt.Println(user.Name, user.Email)

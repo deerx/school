@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" type="text/css" href="/static/layui/css/layui.css">
+    <script type="text/javascript" src="/static/layui/layui.js"></script>
+    <script type="text/javascript" src="/static/js/jquery-3.4.1.js"></script>
+    <title></title>
+</head>
+
+<body>
+    <div style="text-align: center;  width:300px; height:400px ; border:1px solid rgb(0, 119, 255);">
+        <form action="/exitroom" method="POST">
+            <div>
+                <p style="display: inline-block; vertical-align: middle;">
+                    <h1>XXX大学</h1>
+                </p>
+            </div>
+            <div>
+                <p style="display: inline-block; vertical-align: middle;">浴室洗澡预约</p>
+
+            </div>
+            <div>
+                <p style="display: inline-block; vertical-align: middle;">已预约成功</p>
+            </div>
+
+            <div style="margin: 0 auto; text-align: center;  width: 270px;; height:134px ; border:1px solid rgb(94, 94, 95);border-radius:30px;">
+            
+                <div style=" text-align:left;margin-left: 23px;">
+                    <p style="display: inline-block;">编号:{{.Number}}</p>
+                </div>
+            
+                <div>
+                    <p style="display: inline-block; vertical-align: middle;">有效期</p>
+                </div><div>
+                    <p style="display: inline-block; vertical-align: middle;">{{.TimeStr}}</p>
+                </div>
+            
+            </div>
+
+            <!-- <input type="text" style="display: none;" name="studentid" value={{.StudentID}} /> -->
+            <!-- <input type="text" style="display: none;" name="roomid" value={{.RoomID}} /> -->
+            <input style="display:block;margin:0 auto" type="submit" class="layui-btn" value="结束预约" />
+        </form>
+        <div>
+            <div>
+                <p style="display: inline-block; vertical-align: middle;">请各位同学自觉遵守时间</p>
+            </div>
+            <div>
+                <p style="display: inline-block; vertical-align: middle;">洗完澡可提前结束预约</p>
+            </div>
+           
+        </div>
+
+    </div>
+</body>
+</html>

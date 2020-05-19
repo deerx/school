@@ -3,11 +3,28 @@ package mypkg
 import (
 	"fmt"
 	"html/template"
+	"log"
 	"net/http"
+	"strconv"
+	"sync"
+)
+
+const (
+	countTotalRoomSQL             = "select count(*) from room"
+	countOccupyRoomSQL            = "select count(*) from room where type ='0'  "
+	findRoomSQL                   = "select * from room where  type ='0'"
+	updateRoomSQL                 = "update room set type = $1 where id = $2"
+	insertLogSQL                  = "insert into log (student_id,room_id,type,timestr,end_time) values($1,$2,$3,$4,$5) returning id"
+	updateLogSQL                  = "update log set type = '0' where student_id  = $1 and type = '1'"
+	findLogSQL                    = "select room_id from log where type = '1' and student_id = $1"
+	clearLogSQL                   = "update log set type= '0' where end_time <now() and type = '1' returning room_id"
+	findRoomByTypeAndStudentIDSQL = "select id,timestr from log where student_id=$1 and type = '1'"
 )
 
 var (
 	sessionMgr *SessionMgr = nil //session管理器
+	//查找对象语句
+	selectSQL = "select * from student where student_id = $1 and password = $2"
 )
 
 func init() {
@@ -18,6 +35,7 @@ func HTTPTest() {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.HandleFunc("/login", login)
 	http.HandleFunc("/index", addpHanderFunc(index))
+	http.HandleFunc("/success", addpHanderFunc(success))
 	err := http.ListenAndServe("localhost:8080", nil)
 	if err != nil {
 		fmt.Println(err)
@@ -26,12 +44,16 @@ func HTTPTest() {
 
 func index(w http.ResponseWriter, r *http.Request) {
 
+	var (
+		viewEntity View1
+	)
 	fmt.Println("登陆成功这是登陆用户", getLoginUser(w, r))
 	t, err := template.ParseFiles("view/index.html")
 	if err != nil {
 		Mylog.Println(err)
 	}
-	t.Execute(w, nil)
+	viewEntity.Count = Count()
+	t.Execute(w, viewEntity)
 }
 
 //处理登录
@@ -47,24 +69,27 @@ func login(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 
 		//可以使用template.HTMLEscapeString()来避免用户进行js注入
-		username := r.FormValue("username")
+		var student Student
+		studentid := r.FormValue("studentid")
 		password := r.FormValue("password")
+		fmt.Println("前端传过来的：学号" + studentid + "密码" + password)
+		DB.QueryRow(selectSQL, studentid, password).Scan(&student.ID, &student.Name, &student.StudentID, &student.Password)
+		fmt.Println("数据库查询到的user", student)
 
-		studentRedis := getStructToHash("students", username)
-
+		// studentRedis := getStructToHash("students", username)
 		// userRow := DB.QueryRow(username, password)
 		// userRow.Scan(&userID)
 
 		//TODO:判断用户名和密码
-		if studentRedis.Password != "" && studentRedis.Password == password {
+		if student.Password != "" && student.Password == password {
 			//创建客户端对应cookie以及在服务器中进行记录
 			var sessionID = sessionMgr.StartSession(w, r)
 
 			//踢除重复登录的
-			remRepeat(studentRedis.StudentID)
+			remRepeat(student.StudentID)
 
 			//设置变量值
-			sessionMgr.SetSessionVal(sessionID, "UserInfo", studentRedis)
+			sessionMgr.SetSessionVal(sessionID, "UserInfo", student)
 
 			//TODO 设置其它数据
 
@@ -120,4 +145,200 @@ func remRepeat(loginUserID string) {
 			}
 		}
 	}
+}
+
+// Count 查询全部和剩余浴室
+func Count() string {
+	var (
+		countOccupy int
+		countTotal  int
+	)
+	DB.QueryRow(countOccupyRoomSQL).Scan(&countOccupy)
+	DB.QueryRow(countTotalRoomSQL).Scan(&countTotal)
+	return strconv.Itoa(countOccupy) + " / " + strconv.Itoa(countTotal)
+}
+
+func success(w http.ResponseWriter, r *http.Request) {
+	var (
+		Entity View2
+	)
+	fmt.Println("请求到了预约界面")
+	loginUser := getLoginUser(w, r)
+
+	DB.QueryRow(findRoomByTypeAndStudentIDSQL, loginUser.StudentID).Scan(&Entity.Number, &Entity.TimeStr)
+	if Entity.Number != "" && Entity.TimeStr != "" {
+		tmpl, err := template.ParseFiles("view/success.html")
+		if err != nil {
+			fmt.Println(err)
+		}
+		tmpl.Execute(w, Entity)
+	} else {
+		// ExitRoomAndInsert(studentid)
+		roomid, flag, number, timestr := updateRoomAndInsetLog(loginUser.StudentID)
+		if flag {
+			Entity.Number = number
+			Entity.RoomID = roomid
+			Entity.TimeStr = timestr
+			tmpl, err := template.ParseFiles("view/success.html")
+			if err != nil {
+				fmt.Println(err)
+			}
+			tmpl.Execute(w, Entity)
+
+		} else {
+			var viewEntity View1
+			tmpl, err := template.ParseFiles("view/appointment.html")
+			if err != nil {
+				fmt.Println(err)
+			}
+			viewEntity.Count = Count()
+			viewEntity.Text = "暂无空闲浴室请稍后预约"
+			tmpl.Execute(w, viewEntity)
+		}
+	}
+
+}
+
+func updateRoomAndInsetLog(studentID string) (string, bool, string, string) {
+	var (
+		mu sync.Mutex
+	)
+	mu.Lock()
+	var (
+		flag    bool = false
+		number  int
+		timestr string
+		endtime string
+	)
+	room := FindRoom()
+	if room.ID != 0 && room.Type != "" {
+		DB.QueryRow(updateRoomSQL, "1", room.ID)
+		timestr, endtime = GetTime()
+		//插入一条使用记录
+		DB.QueryRow(insertLogSQL, studentID, room.ID, "1", timestr, endtime).Scan(&number)
+		flag = true
+	} else {
+		mu.Unlock()
+		return "", false, "", ""
+	}
+	mu.Unlock()
+	return strconv.Itoa(room.ID), flag, strconv.Itoa(number), timestr
+}
+
+//查找空闲浴室的方法
+func FindRoom() Room {
+	var (
+		rooms []Room
+		room  Room
+		room1 Room
+	)
+	rows, err := DB.Query(findRoomSQL)
+	defer rows.Close()
+	if err != nil {
+		fmt.Println(err)
+		room1.ID = 0
+		room1.Type = ""
+		return room1
+	}
+	for rows.Next() {
+		err := rows.Scan(&room.ID, &room.Type)
+
+		if err != nil {
+			fmt.Println(err)
+			break
+		} else {
+			// fmt.Print("刚才添加到rooms集合的数据是")
+			// fmt.Println(room)
+			rooms = append(rooms, room)
+		}
+	}
+	//如果没有剩余房间，先清除过期预约腾出房间
+	if len(rooms) < 1 {
+		clearLogAndRoom()
+		room1.ID = 0
+		room1.Type = ""
+		return room1
+	}
+	return rooms[len(rooms)-1]
+}
+
+//清空预约过期的房间
+func clearLogAndRoom() {
+	var (
+		roomIDs []int
+		roomID  int
+	)
+	rows, err := DB.Query(clearLogSQL)
+	defer rows.Close()
+	if err != nil {
+		log.Println(err)
+	}
+	for rows.Next() {
+		err := rows.Scan(&roomID)
+		if err != nil {
+			fmt.Println(err)
+			break
+		} else {
+			roomIDs = append(roomIDs, roomID)
+		}
+	}
+	fmt.Println("roomIDs")
+	fmt.Println(roomIDs)
+	for _, id := range roomIDs {
+		DB.QueryRow(updateRoomSQL, "0", id)
+	}
+}
+
+func exitRoom(w http.ResponseWriter, r *http.Request) {
+	var viewEntity View1
+	fmt.Println("请求到了exitRoom")
+	err := r.ParseForm()
+	if err != nil {
+		fmt.Println(err)
+	}
+	studentid := r.FormValue("studentid")
+	if len(studentid) < 2 {
+		index(w, r)
+		return
+	}
+	tmpl, err := template.ParseFiles("view/appointment.html")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	if studentid != "" {
+		ExitRoomAndInsert(studentid)
+		viewEntity.Text = "取消成功"
+	} else {
+		viewEntity.Text = "取消失败"
+	}
+	viewEntity.Count = Count()
+	tmpl.Execute(w, viewEntity)
+}
+
+func ExitRoomAndInsert(studentId string) {
+	var (
+		roomids []int
+		roomid  int
+	)
+	rows, err := DB.Query(findLogSQL, studentId)
+	defer rows.Close()
+	if err != nil {
+		fmt.Println(err)
+	}
+	for rows.Next() {
+		err = rows.Scan(&roomid)
+		if err != nil {
+			fmt.Println(err)
+			break
+		} else {
+			roomids = append(roomids, roomid)
+		}
+
+	}
+
+	for _, id := range roomids {
+		DB.QueryRow(updateRoomSQL, "0", id)
+	}
+	DB.QueryRow(updateLogSQL, studentId)
 }

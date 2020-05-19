@@ -19,5 +19,6 @@ func main() {
 	// mypkg.TestType()
 
 	// mypkg.TestIo()
-	mypkg.TestInfo()
+	// mypkg.TestInfo()
+	mypkg.HTTPTest()
 }

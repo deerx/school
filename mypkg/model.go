@@ -20,9 +20,8 @@ type Room struct {
 
 //View1 传输到第一个页面的数据
 type View1 struct {
-	Count     string
-	StudentID string
-	Text      string
+	Count string
+	Text  string
 }
 
 //View2 传输到第二个页面的数据
