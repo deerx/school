@@ -14,13 +14,13 @@ const (
 	countOccupyRoomSQL            = "select count(*) from room where type ='0'  "
 	findRoomSQL                   = "select * from room where  type ='0'"
 	updateRoomSQL                 = "update room set type = $1 where id = $2"
-	insertLogSQL                  = "insert into log (student_id,room_id,type,timestr,end_time) values($1,$2,$3,$4,$5) returning id"
-	updateLogSQL                  = "update log set type = '0' where student_id  = $1 and type = '1'"
-	findLogSQL                    = "select room_id from log where type = '1' and student_id = $1"
+	insertLogSQL                  = "insert into log (ber,room_id,type,timestr,end_time) values($1,$2,$3,$4,$5) returning id"
+	updateLogSQL                  = "update log set type = '0' where ber  = $1 and type = '1'"
+	findLogSQL                    = "select room_id from log where type = '1' and ber = $1"
 	clearLogSQL                   = "update log set type= '0' where end_time <now() and type = '1' returning room_id"
-	findRoomByTypeAndStudentIDSQL = "select id,timestr from log where student_id=$1 and type = '1'"
-	//查找对象语句
-	selectSQL = "select * from student where student_id = $1 and password = $2"
+	findRoomByTypeAndStudentIDSQL = "select id,timestr from log where ber=$1 and type = '1'"
+	// 查找对象语句
+	selectSQL = "select * from student where ber = $1 and password = $2"
 )
 
 var (
@@ -32,6 +32,7 @@ func init() {
 	sessionMgr = NewSessionMgr("TestCookieName", 3600)
 }
 
+// HTTPTest 启动web项目
 func HTTPTest() {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.HandleFunc("/login", login)
@@ -51,7 +52,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 		Entity     View2
 	)
 	loginUser := getLoginUser(w, r)
-	DB.QueryRow(findRoomByTypeAndStudentIDSQL, loginUser.StudentID).Scan(&Entity.Number, &Entity.TimeStr)
+	DB.QueryRow(findRoomByTypeAndStudentIDSQL, loginUser.Ber).Scan(&Entity.Number, &Entity.TimeStr)
 	if Entity.Number != "" && Entity.TimeStr != "" {
 		tmpl, err := template.ParseFiles("view/success.html")
 		if err != nil {
@@ -69,7 +70,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, viewEntity)
 }
 
-//处理登录
+// 处理登录
 func login(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		fmt.Println("请求到了登陆页面")
@@ -78,35 +79,35 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 	} else if r.Method == "POST" {
 		fmt.Println("请求到了验证")
-		//请求的是登陆数据，那么执行登陆的逻辑判断
+		// 请求的是登陆数据，那么执行登陆的逻辑判断
 		r.ParseForm()
 
-		//可以使用template.HTMLEscapeString()来避免用户进行js注入
+		// 可以使用template.HTMLEscapeString()来避免用户进行js注入
 		var student Student
 		studentid := r.FormValue("studentid")
 		password := r.FormValue("password")
 		fmt.Println("前端传过来的：学号" + studentid + "密码" + password)
-		DB.QueryRow(selectSQL, studentid, password).Scan(&student.ID, &student.Name, &student.StudentID, &student.Password)
+		DB.QueryRow(selectSQL, studentid, password).Scan(&student.ID, &student.Name, &student.Ber, &student.Password)
 		fmt.Println("数据库查询到的user", student)
 
 		// studentRedis := getStructToHash("students", username)
 		// userRow := DB.QueryRow(username, password)
 		// userRow.Scan(&userID)
 
-		//TODO:判断用户名和密码
+		// TODO:判断用户名和密码
 		if student.Password != "" && student.Password == password {
-			//创建客户端对应cookie以及在服务器中进行记录
+			// 创建客户端对应cookie以及在服务器中进行记录
 			var sessionID = sessionMgr.StartSession(w, r)
 
-			//踢除重复登录的
-			remRepeat(student.StudentID)
+			// 踢除重复登录的
+			remRepeat(student.Ber)
 
-			//设置变量值
+			// 设置变量值
 			sessionMgr.SetSessionVal(sessionID, "UserInfo", student)
 
-			//TODO 设置其它数据
+			// TODO 设置其它数据
 
-			//TODO 转向成功页面
+			// TODO 转向成功页面
 			http.Redirect(w, r, "/index", http.StatusFound)
 			return
 		} else {
@@ -116,7 +117,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//验证用户是否已经登陆没登陆重定向到登录页面
+// 验证用户是否已经登陆没登陆重定向到登录页面
 func testToken(w http.ResponseWriter, r *http.Request) bool {
 	var sessionID = sessionMgr.CheckCookieValid(w, r)
 	if sessionID == "" {
@@ -126,7 +127,7 @@ func testToken(w http.ResponseWriter, r *http.Request) bool {
 	return true
 }
 
-//获取当前登陆对象
+// 获取当前登陆对象
 func getLoginUser(w http.ResponseWriter, r *http.Request) Student {
 	var sessionID = sessionMgr.CheckCookieValid(w, r)
 	fmt.Println("这是sessionId", sessionID)
@@ -138,7 +139,7 @@ func getLoginUser(w http.ResponseWriter, r *http.Request) Student {
 	return Student{}
 }
 
-//将验证用户是否登陆包装到路由中
+// 将验证用户是否登陆包装到路由中
 func addpHanderFunc(a http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if testToken(w, r) {
@@ -147,12 +148,12 @@ func addpHanderFunc(a http.HandlerFunc) http.HandlerFunc {
 	}
 }
 func remRepeat(loginUserID string) {
-	//踢除重复登录的
+	// 踢除重复登录的
 	var onlineSessionIDList = sessionMgr.GetSessionIDList()
 	for _, onlineSessionID := range onlineSessionIDList {
 		if userInfo, ok := sessionMgr.GetSessionVal(onlineSessionID, "UserInfo"); ok {
 			if value, ok := userInfo.(Student); ok {
-				if value.StudentID == loginUserID {
+				if value.Ber == loginUserID {
 					sessionMgr.EndSessionBy(onlineSessionID)
 				}
 			}
@@ -178,7 +179,7 @@ func success(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("请求到了预约界面")
 	loginUser := getLoginUser(w, r)
 
-	DB.QueryRow(findRoomByTypeAndStudentIDSQL, loginUser.StudentID).Scan(&Entity.Number, &Entity.TimeStr)
+	DB.QueryRow(findRoomByTypeAndStudentIDSQL, loginUser.Ber).Scan(&Entity.Number, &Entity.TimeStr)
 	if Entity.Number != "" && Entity.TimeStr != "" {
 		tmpl, err := template.ParseFiles("view/success.html")
 		if err != nil {
@@ -187,7 +188,7 @@ func success(w http.ResponseWriter, r *http.Request) {
 		tmpl.Execute(w, Entity)
 	} else {
 		// ExitRoomAndInsert(studentid)
-		roomid, flag, number, timestr := updateRoomAndInsetLog(loginUser.StudentID)
+		roomid, flag, number, timestr := updateRoomAndInsetLog(loginUser.Ber)
 		if flag {
 			Entity.Number = number
 			Entity.RoomID = roomid
@@ -212,6 +213,7 @@ func success(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// 修改房间状态以及插入使用记录
 func updateRoomAndInsetLog(studentID string) (string, bool, string, string) {
 
 	mu.Lock()
@@ -225,7 +227,7 @@ func updateRoomAndInsetLog(studentID string) (string, bool, string, string) {
 	if room.ID != 0 && room.Type != "" {
 		DB.QueryRow(updateRoomSQL, "1", room.ID)
 		timestr, endtime = GetTime()
-		//插入一条使用记录
+		// 插入一条使用记录
 		DB.QueryRow(insertLogSQL, studentID, room.ID, "1", timestr, endtime).Scan(&number)
 		flag = true
 	} else {
@@ -236,7 +238,7 @@ func updateRoomAndInsetLog(studentID string) (string, bool, string, string) {
 	return strconv.Itoa(room.ID), flag, strconv.Itoa(number), timestr
 }
 
-//查找空闲浴室的方法
+// FindRoom 查找空闲浴室的方法
 func FindRoom() Room {
 	var (
 		rooms []Room
@@ -263,7 +265,7 @@ func FindRoom() Room {
 			rooms = append(rooms, room)
 		}
 	}
-	//如果没有剩余房间，先清除过期预约腾出房间
+	// 如果没有剩余房间，先清除过期预约腾出房间
 	if len(rooms) < 1 {
 		clearLogAndRoom()
 		room1.ID = 0
@@ -273,7 +275,7 @@ func FindRoom() Room {
 	return rooms[len(rooms)-1]
 }
 
-//清空预约过期的房间
+// 清空预约过期的房间
 func clearLogAndRoom() {
 	var (
 		roomIDs []int
@@ -300,6 +302,7 @@ func clearLogAndRoom() {
 	}
 }
 
+// 取消房间预约
 func exitRoom(w http.ResponseWriter, r *http.Request) {
 	var (
 		Entity View1
@@ -310,8 +313,8 @@ func exitRoom(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 	}
 
-	if loginUser.StudentID != "" {
-		ExitRoomAndInsert(loginUser.StudentID)
+	if loginUser.Ber != "" {
+		ExitRoomAndInsert(loginUser.Ber)
 		Entity.Text = "取消成功"
 	} else {
 		Entity.Text = "取消失败"
@@ -320,12 +323,13 @@ func exitRoom(w http.ResponseWriter, r *http.Request) {
 	tmpl.Execute(w, Entity)
 }
 
-func ExitRoomAndInsert(studentId string) {
+// ExitRoomAndInsert 取消被预约的数据记录
+func ExitRoomAndInsert(studentID string) {
 	var (
 		roomids []int
 		roomid  int
 	)
-	rows, err := DB.Query(findLogSQL, studentId)
+	rows, err := DB.Query(findLogSQL, studentID)
 	defer rows.Close()
 	if err != nil {
 		fmt.Println(err)
@@ -344,5 +348,5 @@ func ExitRoomAndInsert(studentId string) {
 	for _, id := range roomids {
 		DB.QueryRow(updateRoomSQL, "0", id)
 	}
-	DB.QueryRow(updateLogSQL, studentId)
+	DB.QueryRow(updateLogSQL, studentID)
 }

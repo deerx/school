@@ -6,16 +6,26 @@ import (
 
 //Student 学生实体类
 type Student struct {
-	ID        int
-	StudentID string
-	Password  string
-	Name      string
+	ID       int
+	Ber      string
+	Password string
+	Name     string
 }
 
 //Room 浴室实体类
 type Room struct {
 	ID   int
 	Type string
+}
+
+//Logstr 记录信息
+type Logstr struct {
+	ID      int
+	Ber     string
+	RoomID  string
+	Type    string
+	TimeStr string
+	EndTime string
 }
 
 //View1 传输到第一个页面的数据
@@ -32,16 +42,6 @@ type View2 struct {
 	StudentID string
 }
 
-//Logstr 记录信息
-type Logstr struct {
-	ID        int
-	StudentID string
-	RoomID    string
-	Type      string
-	TimeStr   string
-	EndTime   string
-}
-
 //Person 实体类
 type Person struct {
 	Name string
@@ -49,8 +49,10 @@ type Person struct {
 	Sex  string
 }
 
+//MyType 测试属性
 type MyType = int
 
+//TestType 测试测试属性
 func TestType() {
 	var t MyType
 	t = 6
