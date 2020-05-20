@@ -1,32 +1,28 @@
 package mypkg
 
-import (
-	"fmt"
-)
-
 func RedisGetKey() {
 
-	val, err := MyClient.Get("key2").Result()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("key", val)
+	// 	val, err := MyClient.Get("key2").Result()
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
+	// 	fmt.Println("key", val)
 
-	// err = MyClient.Set("key2", "inininininininininin", 0).Err()
-	// if err != nil {
-	// 	Mylog.Println(err)
-	// }
+	// 	// err = MyClient.Set("key2", "inininininininininin", 0).Err()
+	// 	// if err != nil {
+	// 	// 	Mylog.Println(err)
+	// 	// }
 }
 
-func RedisListTest() {
-	var str = "emmmmm"
-	redisAppend("key2", str)
+// func RedisListTest() {
+// var str = "emmmmm"
+// redisAppend("key2", str)
 
-}
+// }
 
-func RedisZsetTest() {
-	zrange("myzset1", 0, 10, 0)
-}
+// func RedisZsetTest() {
+// zrange("myzset1", 0, 10, 0)
+// }
 
 func RedisTest() {
 	// mset("name1", "老张", "name2", "小芳", "name3", "小丽")

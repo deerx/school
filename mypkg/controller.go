@@ -1,6 +1,8 @@
 package mypkg
 
 import (
+	// "mypkg/utils"
+	// D:\sample\src\GoRedis\mypkg\utils
 	"fmt"
 	"html/template"
 	"log"
@@ -67,6 +69,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 		Mylog.Println(err)
 	}
 	viewEntity.Count = Count()
+	fmt.Println(viewEntity)
 	t.Execute(w, viewEntity)
 }
 
@@ -87,7 +90,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		studentid := r.FormValue("studentid")
 		password := r.FormValue("password")
 		fmt.Println("前端传过来的：学号" + studentid + "密码" + password)
-		DB.QueryRow(selectSQL, studentid, password).Scan(&student.ID, &student.Name, &student.Ber, &student.Password)
+		DB.QueryRow(selectSQL, studentid, password).Scan(&student.Name, &student.Ber, &student.Password)
 		fmt.Println("数据库查询到的user", student)
 
 		// studentRedis := getStructToHash("students", username)
@@ -130,7 +133,7 @@ func testToken(w http.ResponseWriter, r *http.Request) bool {
 // 获取当前登陆对象
 func getLoginUser(w http.ResponseWriter, r *http.Request) Student {
 	var sessionID = sessionMgr.CheckCookieValid(w, r)
-	fmt.Println("这是sessionId", sessionID)
+	// fmt.Println("这是sessionId", sessionID)
 	userInfo, flags := sessionMgr.GetSessionVal(sessionID, "UserInfo")
 	if flags {
 		// fmt.Println("返回了正确的对象")

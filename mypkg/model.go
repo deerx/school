@@ -6,7 +6,6 @@ import (
 
 //Student 学生实体类
 type Student struct {
-	ID       int
 	Ber      string
 	Password string
 	Name     string
