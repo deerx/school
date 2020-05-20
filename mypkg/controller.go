@@ -3,7 +3,6 @@ package mypkg
 import (
 	// "mypkg/utils"
 	// D:\sample\src\GoRedis\mypkg\utils
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -43,7 +42,7 @@ func HTTPTest() {
 	http.HandleFunc("/exitRoom", addpHanderFunc(exitRoom))
 	err := http.ListenAndServe("localhost:8080", nil)
 	if err != nil {
-		fmt.Println(err)
+		Mylog.Println(err)
 	}
 }
 
@@ -58,30 +57,30 @@ func index(w http.ResponseWriter, r *http.Request) {
 	if Entity.Number != "" && Entity.TimeStr != "" {
 		tmpl, err := template.ParseFiles("view/success.html")
 		if err != nil {
-			fmt.Println(err)
+			Mylog.Println(err)
 		}
 		tmpl.Execute(w, Entity)
 		return
 	}
-	fmt.Println("登陆成功这是登陆用户", getLoginUser(w, r))
+	Mylog.Println("登陆成功这是登陆用户", getLoginUser(w, r))
 	t, err := template.ParseFiles("view/index.html")
 	if err != nil {
 		Mylog.Println(err)
 	}
 	viewEntity.Count = Count()
-	fmt.Println(viewEntity)
+	Mylog.Println(viewEntity)
 	t.Execute(w, viewEntity)
 }
 
 // 处理登录
 func login(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		fmt.Println("请求到了登陆页面")
+		Mylog.Println("请求到了登陆页面")
 		t, _ := template.ParseFiles("view/login.html")
 		t.Execute(w, nil)
 
 	} else if r.Method == "POST" {
-		fmt.Println("请求到了验证")
+		Mylog.Println("请求到了验证")
 		// 请求的是登陆数据，那么执行登陆的逻辑判断
 		r.ParseForm()
 
@@ -89,9 +88,9 @@ func login(w http.ResponseWriter, r *http.Request) {
 		var student Student
 		studentid := r.FormValue("studentid")
 		password := r.FormValue("password")
-		fmt.Println("前端传过来的：学号" + studentid + "密码" + password)
+		Mylog.Println("前端传过来的：学号" + studentid + "密码" + password)
 		DB.QueryRow(selectSQL, studentid, password).Scan(&student.Name, &student.Ber, &student.Password)
-		fmt.Println("数据库查询到的user", student)
+		Mylog.Println("数据库查询到的user", student)
 
 		// studentRedis := getStructToHash("students", username)
 		// userRow := DB.QueryRow(username, password)
@@ -114,7 +113,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, "/index", http.StatusFound)
 			return
 		} else {
-			fmt.Println("账号或密码错误")
+			Mylog.Println("账号或密码错误")
 			http.Redirect(w, r, "/login", http.StatusFound)
 		}
 	}
@@ -133,10 +132,10 @@ func testToken(w http.ResponseWriter, r *http.Request) bool {
 // 获取当前登陆对象
 func getLoginUser(w http.ResponseWriter, r *http.Request) Student {
 	var sessionID = sessionMgr.CheckCookieValid(w, r)
-	// fmt.Println("这是sessionId", sessionID)
+	// Mylog.Println("这是sessionId", sessionID)
 	userInfo, flags := sessionMgr.GetSessionVal(sessionID, "UserInfo")
 	if flags {
-		// fmt.Println("返回了正确的对象")
+		// Mylog.Println("返回了正确的对象")
 		return userInfo.(Student)
 	}
 	return Student{}
@@ -179,14 +178,14 @@ func success(w http.ResponseWriter, r *http.Request) {
 	var (
 		Entity View2
 	)
-	fmt.Println("请求到了预约界面")
+	Mylog.Println("请求到了预约界面")
 	loginUser := getLoginUser(w, r)
 
 	DB.QueryRow(findRoomByTypeAndStudentIDSQL, loginUser.Ber).Scan(&Entity.Number, &Entity.TimeStr)
 	if Entity.Number != "" && Entity.TimeStr != "" {
 		tmpl, err := template.ParseFiles("view/success.html")
 		if err != nil {
-			fmt.Println(err)
+			Mylog.Println(err)
 		}
 		tmpl.Execute(w, Entity)
 	} else {
@@ -198,7 +197,7 @@ func success(w http.ResponseWriter, r *http.Request) {
 			Entity.TimeStr = timestr
 			tmpl, err := template.ParseFiles("view/success.html")
 			if err != nil {
-				fmt.Println(err)
+				Mylog.Println(err)
 			}
 			tmpl.Execute(w, Entity)
 
@@ -206,7 +205,7 @@ func success(w http.ResponseWriter, r *http.Request) {
 			var viewEntity View1
 			tmpl, err := template.ParseFiles("view/index.html")
 			if err != nil {
-				fmt.Println(err)
+				Mylog.Println(err)
 			}
 			viewEntity.Count = Count()
 			viewEntity.Text = "暂无空闲浴室请稍后预约"
@@ -251,7 +250,7 @@ func FindRoom() Room {
 	rows, err := DB.Query(findRoomSQL)
 	defer rows.Close()
 	if err != nil {
-		fmt.Println(err)
+		Mylog.Println(err)
 		room1.ID = 0
 		room1.Type = ""
 		return room1
@@ -260,11 +259,11 @@ func FindRoom() Room {
 		err := rows.Scan(&room.ID, &room.Type)
 
 		if err != nil {
-			fmt.Println(err)
+			Mylog.Println(err)
 			break
 		} else {
-			// fmt.Print("刚才添加到rooms集合的数据是")
-			// fmt.Println(room)
+			// Mylog.Print("刚才添加到rooms集合的数据是")
+			// Mylog.Println(room)
 			rooms = append(rooms, room)
 		}
 	}
@@ -292,14 +291,14 @@ func clearLogAndRoom() {
 	for rows.Next() {
 		err := rows.Scan(&roomID)
 		if err != nil {
-			fmt.Println(err)
+			Mylog.Println(err)
 			break
 		} else {
 			roomIDs = append(roomIDs, roomID)
 		}
 	}
-	fmt.Println("roomIDs")
-	fmt.Println(roomIDs)
+	Mylog.Println("过期的浴室号码")
+	Mylog.Println(roomIDs)
 	for _, id := range roomIDs {
 		DB.QueryRow(updateRoomSQL, "0", id)
 	}
@@ -307,13 +306,14 @@ func clearLogAndRoom() {
 
 // 取消房间预约
 func exitRoom(w http.ResponseWriter, r *http.Request) {
+	Mylog.Println("取消预约")
 	var (
 		Entity View1
 	)
 	loginUser := getLoginUser(w, r)
 	tmpl, err := template.ParseFiles("view/index.html")
 	if err != nil {
-		fmt.Println(err)
+		Mylog.Println(err)
 	}
 
 	if loginUser.Ber != "" {
@@ -335,12 +335,12 @@ func ExitRoomAndInsert(studentID string) {
 	rows, err := DB.Query(findLogSQL, studentID)
 	defer rows.Close()
 	if err != nil {
-		fmt.Println(err)
+		Mylog.Println(err)
 	}
 	for rows.Next() {
 		err = rows.Scan(&roomid)
 		if err != nil {
-			fmt.Println(err)
+			Mylog.Println(err)
 			break
 		} else {
 			roomids = append(roomids, roomid)

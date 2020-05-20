@@ -4,20 +4,20 @@ import (
 	"fmt"
 )
 
-//Student 学生实体类
+// Student 学生实体类
 type Student struct {
 	Ber      string
 	Password string
 	Name     string
 }
 
-//Room 浴室实体类
+// Room 浴室实体类
 type Room struct {
 	ID   int
 	Type string
 }
 
-//Logstr 记录信息
+// Logstr 记录信息
 type Logstr struct {
 	ID      int
 	Ber     string

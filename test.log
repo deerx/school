@@ -1,3 +1,16 @@
 [log]2020/05/14 10:52:27 D:/sample/src/GoRedis/mypkg/redisTest.go:91: giao
 [log]2020/05/14 15:08:14 D:/sample/src/GoRedis/mypkg/redisTest.go:91: giao
 [log]2020/05/15 08:54:43 D:/sample/src/GoRedis/mypkg/redisTest.go:91: giao
+[log]2020/05/20 13:53:58 D:/sample/src/GoRedis/mypkg/controller.go:78: 请求到了登陆页面
+[log]2020/05/20 13:54:07 D:/sample/src/GoRedis/mypkg/controller.go:83: 请求到了验证
+[log]2020/05/20 13:54:07 D:/sample/src/GoRedis/mypkg/controller.go:91: 前端传过来的：学号XX140101密码123456
+[log]2020/05/20 13:54:07 D:/sample/src/GoRedis/mypkg/controller.go:93: 数据库查询到的user {XX140101 123456 张三}
+[log]2020/05/20 13:54:07 D:/sample/src/GoRedis/mypkg/controller.go:65: 登陆成功这是登陆用户 {XX140101 123456 张三}
+[log]2020/05/20 13:54:07 D:/sample/src/GoRedis/mypkg/controller.go:71: {13 / 13 }
+[log]2020/05/20 13:54:11 D:/sample/src/GoRedis/mypkg/controller.go:181: 请求到了预约界面
+[log]2020/05/20 13:57:05 D:/sample/src/GoRedis/mypkg/controller.go:181: 请求到了预约界面
+[log]2020/05/20 13:57:09 D:/sample/src/GoRedis/mypkg/controller.go:181: 请求到了预约界面
+[log]2020/05/20 14:20:25 D:/sample/src/GoRedis/mypkg/controller.go:65: 登陆成功这是登陆用户 {XX140101 123456 张三}
+[log]2020/05/20 14:20:25 D:/sample/src/GoRedis/mypkg/controller.go:71: {13 / 13 }
+[log]2020/05/20 14:20:52 D:/sample/src/GoRedis/mypkg/controller.go:78: 请求到了登陆页面
+[log]2020/05/20 14:20:59 D:/sample/src/GoRedis/mypkg/controller.go:78: 请求到了登陆页面
