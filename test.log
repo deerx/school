@@ -14,3 +14,5 @@
 [log]2020/05/20 14:20:25 D:/sample/src/GoRedis/mypkg/controller.go:71: {13 / 13 }
 [log]2020/05/20 14:20:52 D:/sample/src/GoRedis/mypkg/controller.go:78: 请求到了登陆页面
 [log]2020/05/20 14:20:59 D:/sample/src/GoRedis/mypkg/controller.go:78: 请求到了登陆页面
+[log]2020/05/20 16:35:18 D:/sample/src/GoRedis/mypkg/controller.go:362: {0xc000044080 0}
+[log]2020/05/20 16:39:29 D:/sample/src/GoRedis/mypkg/controller.go:363: 0x7e4f00

@@ -3,6 +3,7 @@ package mypkg
 import (
 	// "mypkg/utils"
 	// D:\sample\src\GoRedis\mypkg\utils
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -26,7 +27,7 @@ const (
 
 var (
 	sessionMgr *SessionMgr = nil //session管理器
-	mu         sync.Mutex
+	
 )
 
 func init() {
@@ -217,7 +218,7 @@ func success(w http.ResponseWriter, r *http.Request) {
 
 // 修改房间状态以及插入使用记录
 func updateRoomAndInsetLog(studentID string) (string, bool, string, string) {
-
+	var mu         sync.Mutex
 	mu.Lock()
 	var (
 		flag    bool = false
@@ -237,6 +238,7 @@ func updateRoomAndInsetLog(studentID string) (string, bool, string, string) {
 		return "", false, "", ""
 	}
 	mu.Unlock()
+	
 	return strconv.Itoa(room.ID), flag, strconv.Itoa(number), timestr
 }
 
@@ -352,4 +354,25 @@ func ExitRoomAndInsert(studentID string) {
 		DB.QueryRow(updateRoomSQL, "0", id)
 	}
 	DB.QueryRow(updateLogSQL, studentID)
+}
+
+func ExitRooms() {
+	results, err := DB.Query("select l.ber,l.end_time,l.type from log l,room r where l.room_id = r.id and r.id ='1' and l.type='1'")
+	if err != nil {
+		Mylog.Println(err)
+	}
+	for results.Next() {
+		var (
+			berstr  string
+			endtime string
+			typestr string
+		)
+		err := results.Scan(&berstr, &endtime, &typestr)
+		if err != nil {
+			Mylog.Println(err)
+			break
+		} else {
+			fmt.Println(berstr, endtime, typestr)
+		}
+	}
 }

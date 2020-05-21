@@ -20,5 +20,6 @@ func main() {
 
 	// mypkg.TestIo()
 	// mypkg.TestInfo()
-	mypkg.HTTPTest()
+	// mypkg.HTTPTest()
+	mypkg.ExitRooms()
 }
