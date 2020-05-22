@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" type="text/css" href="/static/layui/css/layui.css">
+    <script type="text/javascript" src="/static/layui/layui.js"></script>
+    <script type="text/javascript" src="/static/js/jquery-3.4.1.js"></script>
+    <title></title>
+</head>
+
+<body>
+    <form action="/login" method="POST">
+        <p>学号<input type="text" id="studentid" name = "studentid" value=""/></p>
+        <p>密码<input type="text" id="password" name = "password" value=""/></p>
+        <input type="submit" id="but1" value="提交" />
+    </form>
+    <p><b> {{.}}</b></P>
+</body>
+
+</html>
