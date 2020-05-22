@@ -26,7 +26,7 @@ func main() {
 	// mypkg.HTTPTest()
 	// mypkg.ExitRooms()
 	// mypkg.Getrooms()
-	for i := 1; i <= 10000; i++ {
+	for i := 1; i <= 100; i++ {
 		go mypkg.GetRoomBeginTest(strconv.Itoa(i))
 	}
 	time.Sleep(60 * time.Second)

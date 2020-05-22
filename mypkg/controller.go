@@ -13,8 +13,8 @@ import (
 const (
 	countTotalRoomSQL             = "select count(*) from room"
 	countOccupyRoomSQL            = "select count(*) from room where type =0  "
-	findRoomSQL                   = "select * from room where  type =0"
-	updateRoomSQL                 = "update room set type = $1 where id = $2"
+	findRoomSQL                   = "select * from room where type =0"
+	updateRoomSQL                 = "update room set type = $1 where id = $2 and type <> $1"
 	insertOrderSQL                = "insert into orders (user_name,room_id,type,timestr,end_time) values($1,$2,$3,$4,$5) returning id"
 	updateOrderSQL                = "update orders set type = 0 where user_name  = $1 and type = 1"
 	findOrderSQL                  = "select room_id from orders where type = 1 and user_name = $1"

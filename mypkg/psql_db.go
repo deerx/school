@@ -16,9 +16,9 @@ var (
 const (
 	//定义常量数据库连接
 	host     = "localhost"
-	port     = 5432
-	user     = "postgres"
-	password = "123"
+	port     = 5090
+	user     = "dust"
+	password = "dust"
 	dbname   = "demo"
 )
 
