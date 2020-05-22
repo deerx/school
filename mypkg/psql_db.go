@@ -45,3 +45,7 @@ func ConnentDB() *sql.DB {
 func init() {
 	DB = ConnentDB()
 }
+
+func GetDB() *sql.DB {
+	return ConnentDB()
+}

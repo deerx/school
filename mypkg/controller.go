@@ -5,7 +5,6 @@ import (
 	// D:\sample\src\GoRedis\mypkg\utils
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 	"strconv"
 	"sync"
@@ -13,21 +12,21 @@ import (
 
 const (
 	countTotalRoomSQL             = "select count(*) from room"
-	countOccupyRoomSQL            = "select count(*) from room where type ='0'  "
-	findRoomSQL                   = "select * from room where  type ='0'"
+	countOccupyRoomSQL            = "select count(*) from room where type =0  "
+	findRoomSQL                   = "select * from room where  type =0"
 	updateRoomSQL                 = "update room set type = $1 where id = $2"
-	insertLogSQL                  = "insert into log (ber,room_id,type,timestr,end_time) values($1,$2,$3,$4,$5) returning id"
-	updateLogSQL                  = "update log set type = '0' where ber  = $1 and type = '1'"
-	findLogSQL                    = "select room_id from log where type = '1' and ber = $1"
-	clearLogSQL                   = "update log set type= '0' where end_time <now() and type = '1' returning room_id"
-	findRoomByTypeAndStudentIDSQL = "select id,timestr from log where ber=$1 and type = '1'"
+	insertOrderSQL                = "insert into orders (user_name,room_id,type,timestr,end_time) values($1,$2,$3,$4,$5) returning id"
+	updateOrderSQL                = "update orders set type = 0 where user_name  = $1 and type = 1"
+	findOrderSQL                  = "select room_id from orders where type = 1 and user_name = $1"
+	clearOrderSQL                 = "update orders set type= 0 where end_time <now() and type = 1 returning room_id"
+	findRoomByTypeAndStudentIDSQL = "select id,timestr from orders where user_name=$1 and type = 1"
 	// 查找对象语句
-	selectSQL = "select * from student where ber = $1 and password = $2"
+	selectSQL = "select * from student where user_name = $1 and password = $2"
 )
 
 var (
 	sessionMgr *SessionMgr = nil //session管理器
-	
+
 )
 
 func init() {
@@ -54,7 +53,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 		Entity     View2
 	)
 	loginUser := getLoginUser(w, r)
-	DB.QueryRow(findRoomByTypeAndStudentIDSQL, loginUser.Ber).Scan(&Entity.Number, &Entity.TimeStr)
+	DB.QueryRow(findRoomByTypeAndStudentIDSQL, loginUser.UserName).Scan(&Entity.Number, &Entity.TimeStr)
 	if Entity.Number != "" && Entity.TimeStr != "" {
 		tmpl, err := template.ParseFiles("view/success.html")
 		if err != nil {
@@ -90,7 +89,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		studentid := r.FormValue("studentid")
 		password := r.FormValue("password")
 		Mylog.Println("前端传过来的：学号" + studentid + "密码" + password)
-		DB.QueryRow(selectSQL, studentid, password).Scan(&student.Name, &student.Ber, &student.Password)
+		DB.QueryRow(selectSQL, studentid, password).Scan(&student.Name, &student.UserName, &student.Password)
 		Mylog.Println("数据库查询到的user", student)
 
 		// studentRedis := getStructToHash("students", username)
@@ -103,7 +102,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 			var sessionID = sessionMgr.StartSession(w, r)
 
 			// 踢除重复登录的
-			remRepeat(student.Ber)
+			remRepeat(student.UserName)
 
 			// 设置变量值
 			sessionMgr.SetSessionVal(sessionID, "UserInfo", student)
@@ -156,7 +155,7 @@ func remRepeat(loginUserID string) {
 	for _, onlineSessionID := range onlineSessionIDList {
 		if userInfo, ok := sessionMgr.GetSessionVal(onlineSessionID, "UserInfo"); ok {
 			if value, ok := userInfo.(Student); ok {
-				if value.Ber == loginUserID {
+				if value.UserName == loginUserID {
 					sessionMgr.EndSessionBy(onlineSessionID)
 				}
 			}
@@ -182,7 +181,7 @@ func success(w http.ResponseWriter, r *http.Request) {
 	Mylog.Println("请求到了预约界面")
 	loginUser := getLoginUser(w, r)
 
-	DB.QueryRow(findRoomByTypeAndStudentIDSQL, loginUser.Ber).Scan(&Entity.Number, &Entity.TimeStr)
+	DB.QueryRow(findRoomByTypeAndStudentIDSQL, loginUser.UserName).Scan(&Entity.Number, &Entity.TimeStr)
 	if Entity.Number != "" && Entity.TimeStr != "" {
 		tmpl, err := template.ParseFiles("view/success.html")
 		if err != nil {
@@ -191,7 +190,7 @@ func success(w http.ResponseWriter, r *http.Request) {
 		tmpl.Execute(w, Entity)
 	} else {
 		// ExitRoomAndInsert(studentid)
-		roomid, flag, number, timestr := updateRoomAndInsetLog(loginUser.Ber)
+		flag, roomid, number, timestr := GetRoomBegin(loginUser.UserName)
 		if flag {
 			Entity.Number = number
 			Entity.RoomID = roomid
@@ -216,50 +215,46 @@ func success(w http.ResponseWriter, r *http.Request) {
 
 }
 
+var mu sync.Mutex
+
 // 修改房间状态以及插入使用记录
 func updateRoomAndInsetLog(studentID string) (string, bool, string, string) {
-	var mu         sync.Mutex
 	mu.Lock()
 	var (
-		flag    bool = false
-		number  int
-		timestr string
-		endtime string
+		flag   bool = false
+		number int
 	)
-	room := FindRoom()
-	if room.ID != 0 && room.Type != "" {
+	boolean, room := FindRoom()
+	timestr, endtime := GetTime()
+	if boolean {
 		DB.QueryRow(updateRoomSQL, "1", room.ID)
-		timestr, endtime = GetTime()
+
 		// 插入一条使用记录
-		DB.QueryRow(insertLogSQL, studentID, room.ID, "1", timestr, endtime).Scan(&number)
+		DB.QueryRow(insertOrderSQL, studentID, room.ID, "1", timestr, endtime).Scan(&number)
 		flag = true
 	} else {
 		mu.Unlock()
 		return "", false, "", ""
 	}
 	mu.Unlock()
-	
 	return strconv.Itoa(room.ID), flag, strconv.Itoa(number), timestr
 }
 
 // FindRoom 查找空闲浴室的方法
-func FindRoom() Room {
+func FindRoom() (bool, Room) {
 	var (
 		rooms []Room
 		room  Room
-		room1 Room
 	)
+	room1 := Room{ID: 0, Type: -1}
 	rows, err := DB.Query(findRoomSQL)
-	defer rows.Close()
 	if err != nil {
-		Mylog.Println(err)
-		room1.ID = 0
-		room1.Type = ""
-		return room1
+		fmt.Println("没找到房间", err)
+		return false, room1
 	}
+	defer rows.Close()
 	for rows.Next() {
 		err := rows.Scan(&room.ID, &room.Type)
-
 		if err != nil {
 			Mylog.Println(err)
 			break
@@ -272,24 +267,25 @@ func FindRoom() Room {
 	// 如果没有剩余房间，先清除过期预约腾出房间
 	if len(rooms) < 1 {
 		clearLogAndRoom()
-		room1.ID = 0
-		room1.Type = ""
-		return room1
+
+		return false, room1
 	}
-	return rooms[len(rooms)-1]
+	return true, rooms[len(rooms)-1]
 }
 
 // 清空预约过期的房间
 func clearLogAndRoom() {
+	fmt.Println("执行清理")
 	var (
 		roomIDs []int
 		roomID  int
 	)
-	rows, err := DB.Query(clearLogSQL)
-	defer rows.Close()
+	rows, err := DB.Query(clearOrderSQL)
 	if err != nil {
-		log.Println(err)
+		fmt.Println("清理失败", err)
+		return
 	}
+	defer rows.Close()
 	for rows.Next() {
 		err := rows.Scan(&roomID)
 		if err != nil {
@@ -299,10 +295,10 @@ func clearLogAndRoom() {
 			roomIDs = append(roomIDs, roomID)
 		}
 	}
-	Mylog.Println("过期的浴室号码")
-	Mylog.Println(roomIDs)
+	fmt.Println("过期的浴室号码")
+	fmt.Println(roomIDs)
 	for _, id := range roomIDs {
-		DB.QueryRow(updateRoomSQL, "0", id)
+		DB.QueryRow(updateRoomSQL, 0, id)
 	}
 }
 
@@ -318,8 +314,8 @@ func exitRoom(w http.ResponseWriter, r *http.Request) {
 		Mylog.Println(err)
 	}
 
-	if loginUser.Ber != "" {
-		ExitRoomAndInsert(loginUser.Ber)
+	if loginUser.UserName != "" {
+		ExitRoomAndInsert(loginUser.UserName)
 		Entity.Text = "取消成功"
 	} else {
 		Entity.Text = "取消失败"
@@ -334,11 +330,11 @@ func ExitRoomAndInsert(studentID string) {
 		roomids []int
 		roomid  int
 	)
-	rows, err := DB.Query(findLogSQL, studentID)
-	defer rows.Close()
+	rows, err := DB.Query(findOrderSQL, studentID)
 	if err != nil {
 		Mylog.Println(err)
 	}
+	defer rows.Close()
 	for rows.Next() {
 		err = rows.Scan(&roomid)
 		if err != nil {
@@ -351,28 +347,7 @@ func ExitRoomAndInsert(studentID string) {
 	}
 
 	for _, id := range roomids {
-		DB.QueryRow(updateRoomSQL, "0", id)
+		DB.QueryRow(updateRoomSQL, 0, id)
 	}
-	DB.QueryRow(updateLogSQL, studentID)
-}
-
-func ExitRooms() {
-	results, err := DB.Query("select l.ber,l.end_time,l.type from log l,room r where l.room_id = r.id and r.id ='1' and l.type='1'")
-	if err != nil {
-		Mylog.Println(err)
-	}
-	for results.Next() {
-		var (
-			berstr  string
-			endtime string
-			typestr string
-		)
-		err := results.Scan(&berstr, &endtime, &typestr)
-		if err != nil {
-			Mylog.Println(err)
-			break
-		} else {
-			fmt.Println(berstr, endtime, typestr)
-		}
-	}
+	DB.QueryRow(updateOrderSQL, studentID)
 }

@@ -253,7 +253,7 @@ func lpush(mylist, val1, val2, val3 string) {
 //添加一条数据到hash--------------
 func setStructToHash(myhash string, userInfo Student) {
 	userInfoJSON, _ := json.Marshal(userInfo)
-	isSetSuccessful, err := MyClient.HSet(myhash, userInfo.Ber, userInfoJSON).Result()
+	isSetSuccessful, err := MyClient.HSet(myhash, userInfo.UserName, userInfoJSON).Result()
 	if err != nil {
 		log.Fatal(err)
 	}

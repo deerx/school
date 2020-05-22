@@ -1,6 +1,9 @@
 package main
 
 import (
+	"strconv"
+	"time"
+
 	"github.com/my/repo/mypkg"
 )
 
@@ -21,5 +24,10 @@ func main() {
 	// mypkg.TestIo()
 	// mypkg.TestInfo()
 	// mypkg.HTTPTest()
-	mypkg.ExitRooms()
+	// mypkg.ExitRooms()
+	// mypkg.Getrooms()
+	for i := 1; i <= 10000; i++ {
+		go mypkg.GetRoomBeginTest(strconv.Itoa(i))
+	}
+	time.Sleep(60 * time.Second)
 }

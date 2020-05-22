@@ -2,29 +2,31 @@ package mypkg
 
 import (
 	"fmt"
+	"time"
 )
 
 // Student 学生实体类
 type Student struct {
-	Ber      string
+	ID       int
+	UserName string
 	Password string
 	Name     string
 }
 
-// Room 浴室实体类
-type Room struct {
-	ID   int
-	Type string
-}
+	// Room 浴室实体类
+	type Room struct {
+		ID   int
+		Type int
+	}
 
 // Logstr 记录信息
-type Logstr struct {
-	ID      int
-	Ber     string
-	RoomID  string
-	Type    string
-	TimeStr string
-	EndTime string
+type Order struct {
+	ID       int
+	UserName string
+	RoomID   string
+	Type     int
+	TimeStr  string
+	EndTime  time.Time
 }
 
 //View1 传输到第一个页面的数据
