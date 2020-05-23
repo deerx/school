@@ -70,25 +70,36 @@ func GetRoomBeginTest(userNumber string) {
 	if err != nil {
 		fmt.Println("未找到房间回滚", err)
 		fmt.Println("清理房间")
-		DB.QueryRow("update room set type = 0")
-		DB.QueryRow("update orders set type = 0")
+		// DB.QueryRow("update room set type = 0")
+		// DB.QueryRow("update orders set type = 0")
 		return
 	}
 
-	if returnRoom.ID != 0 {
-		_, err = tx.Exec(updateRoomSQL, "1", returnRoom.ID)
-		if err != nil {
-			fmt.Println("修改房间状态失败执行回滚", err)
-			return
-		}
-		timestr, endtime := GetTime()
-		err = tx.QueryRow(insertOrderSQL, userNumber, returnRoom.ID, "1", timestr, endtime).Scan(&number)
-		if err != nil {
-			fmt.Println("插入log订单失败执行回滚", err)
-			return
-		}
+	if returnRoom.ID == 0 {
+		fmt.Println("未获取空闲房间")
+		return
 	}
-	fmt.Println(userNumber, "预约成功房间为", returnRoom)
 
+	res, err := tx.Exec(updateRoomSQL, "1", returnRoom.ID)
+	if err != nil {
+		fmt.Println("修改房间状态失败执行回滚", err)
+		return
+	}
+
+	count, err := res.RowsAffected()
+	if err != nil {
+		fmt.Println("update err: ", err)
+	}
+	if count != 1 {
+		fmt.Println("无更新")
+	}
+	timestr, endtime := GetTime()
+	err = tx.QueryRow(insertOrderSQL, userNumber, returnRoom.ID, "1", timestr, endtime).Scan(&number)
+	if err != nil {
+		fmt.Println("插入log订单失败执行回滚", err)
+		return
+	}
+
+	fmt.Println(userNumber, "预约成功房间为", returnRoom)
 	tx.Commit()
 }
